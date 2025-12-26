@@ -3,8 +3,6 @@ import { OrbitControls } from "https://unpkg.com/three@0.158.0/examples/jsm/cont
 import { STLLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/STLLoader.js";
 import { STLExporter } from "https://unpkg.com/three@0.158.0/examples/jsm/exporters/STLExporter.js";
 
-const fileInput = document.getElementById("file-input");
-const dropZone = document.getElementById("drop-zone");
 const stlText = document.getElementById("stl-text");
 const loadTextButton = document.getElementById("load-text");
 const autoFit = document.getElementById("auto-fit");
@@ -16,6 +14,7 @@ const stats = document.getElementById("stats");
 const status = document.getElementById("status");
 const viewer = document.getElementById("viewer");
 const placeholder = document.getElementById("viewer-placeholder");
+const errorFlash = document.getElementById("error-flash");
 
 const scene = new THREE.Scene();
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -46,9 +45,21 @@ let currentGeometry = null;
 let currentName = "model.stl";
 let currentSize = null;
 
+function triggerErrorFlash() {
+  if (!errorFlash) {
+    return;
+  }
+  errorFlash.classList.remove("is-active");
+  void errorFlash.offsetWidth;
+  errorFlash.classList.add("is-active");
+}
+
 function setStatus(message, isError = false) {
   status.textContent = message;
   status.classList.toggle("error", isError);
+  if (isError) {
+    triggerErrorFlash();
+  }
 }
 
 function formatBytes(bytes) {
@@ -148,40 +159,37 @@ function loadStl(data, name, size) {
   try {
     geometry = loader.parse(data);
   } catch (error) {
-    setStatus("Could not parse STL. Check the file format.", true);
+    setStatus("Could not parse STL text. Make sure it's ASCII STL.", true);
     return;
   }
 
   geometry.computeVertexNormals();
+  const position = geometry.getAttribute("position");
+  if (!position || position.count === 0) {
+    setStatus("No triangles found. Check that the STL text is valid.", true);
+    return;
+  }
+  geometry.computeBoundingBox();
+  if (!geometry.boundingBox) {
+    setStatus("Could not compute geometry bounds. Check the STL text.", true);
+    return;
+  }
+  const sizeVec = geometry.boundingBox.getSize(new THREE.Vector3());
+  if (![sizeVec.x, sizeVec.y, sizeVec.z].every(Number.isFinite)) {
+    setStatus("Invalid geometry values detected. Check the STL text.", true);
+    return;
+  }
   currentGeometry = geometry;
   currentName = name || "model.stl";
   currentSize = size ?? null;
   showMesh(geometry);
   updateStats(geometry);
   downloadButton.disabled = false;
-  setStatus("Model loaded.");
-}
-
-function handleFile(file) {
-  if (!file) {
-    return;
-  }
-  if (!file.name.toLowerCase().endsWith(".stl")) {
-    setStatus("Please choose an STL file.", true);
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    loadStl(event.target.result, file.name, file.size);
-  };
-  reader.onerror = () => {
-    setStatus("Could not read the file.", true);
-  };
-  reader.readAsArrayBuffer(file);
+  setStatus("Model loaded. Ready to download.");
 }
 
 function handleText() {
-  const text = stlText.value.trim();
+  const text = stlText.value.replace(/^\uFEFF/, "").trim();
   if (!text) {
     setStatus("Paste STL text before loading.", true);
     return;
@@ -231,12 +239,6 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-fileInput.addEventListener("change", (event) => {
-  const [file] = event.target.files;
-  handleFile(file);
-  event.target.value = "";
-});
-
 loadTextButton.addEventListener("click", handleText);
 
 downloadButton.addEventListener("click", downloadStl);
@@ -248,21 +250,11 @@ autoFit.addEventListener("change", () => {
   }
 });
 
-dropZone.addEventListener("dragover", (event) => {
-  event.preventDefault();
-  dropZone.classList.add("is-dragover");
-});
-
-dropZone.addEventListener("dragleave", () => {
-  dropZone.classList.remove("is-dragover");
-});
-
-dropZone.addEventListener("drop", (event) => {
-  event.preventDefault();
-  dropZone.classList.remove("is-dragover");
-  const [file] = event.dataTransfer.files;
-  handleFile(file);
-});
+if (errorFlash) {
+  errorFlash.addEventListener("animationend", () => {
+    errorFlash.classList.remove("is-active");
+  });
+}
 
 window.addEventListener("resize", onResize);
 

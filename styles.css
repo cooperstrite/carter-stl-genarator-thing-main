@@ -48,6 +48,19 @@ body::before {
   z-index: 0;
 }
 
+.error-flash {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 46, 46, 0.65);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.error-flash.is-active {
+  animation: errorFlash 0.55s ease-in-out;
+}
+
 .site {
   max-width: 1200px;
   margin: 0 auto;
@@ -116,46 +129,6 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.drop-zone {
-  border: 1px dashed rgba(255, 255, 255, 0.25);
-  border-radius: 16px;
-  padding: 24px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
-  background: rgba(15, 24, 43, 0.65);
-}
-
-.drop-zone:hover,
-.drop-zone.is-dragover {
-  border-color: var(--accent);
-  background: rgba(30, 40, 60, 0.75);
-}
-
-.drop-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  display: block;
-}
-
-.drop-subtitle {
-  color: var(--muted);
-  font-size: 0.95rem;
-  display: block;
-  margin-top: 6px;
-}
-
-.drop-meta {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-  display: block;
-  margin-top: 12px;
-}
-
-#file-input {
-  display: none;
 }
 
 label {
@@ -325,6 +298,21 @@ textarea:focus {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes errorFlash {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.45;
+  }
+  60% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0;
   }
 }
 
