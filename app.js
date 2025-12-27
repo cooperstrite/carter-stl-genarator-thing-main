@@ -72,6 +72,7 @@ let currentName = "model.stl";
 let currentSize = null;
 let pendingRepairText = null;
 let scadCompilerPromise = null;
+const scadErrors = [];
 
 function triggerErrorFlash() {
   if (!errorFlash) {
@@ -88,6 +89,23 @@ function setStatus(message, isError = false) {
   if (isError) {
     triggerErrorFlash();
   }
+}
+
+function recordScadError(message) {
+  if (message === undefined || message === null) {
+    return;
+  }
+  scadErrors.push(String(message));
+}
+
+function getScadErrorMessage() {
+  if (!scadErrors.length) {
+    return null;
+  }
+  const normalized = scadErrors.map((line) => line.replace(/\s+/g, " ").trim());
+  const errorLine = [...normalized].reverse().find((line) => /error/i.test(line));
+  const warningLine = [...normalized].reverse().find((line) => /warning/i.test(line));
+  return errorLine || warningLine || null;
 }
 
 function showRepairPrompt(message, originalText) {
@@ -127,6 +145,14 @@ function repairStlText(input) {
   }
 
   return text;
+}
+
+function normalizeScadText(input) {
+  return input
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u00A0/g, " ")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
 }
 
 function resetTransforms() {
@@ -388,20 +414,54 @@ async function getScadCompiler() {
   if (!scadCompilerPromise) {
     scadCompilerPromise = import(
       "https://unpkg.com/openscad-wasm-prebuilt@1.2.0/dist/openscad.js"
-    ).then((mod) => mod.createOpenSCAD());
+    ).then((mod) =>
+      mod.createOpenSCAD({
+        print: recordScadError,
+        printErr: recordScadError,
+      })
+    );
   }
   return scadCompilerPromise;
 }
 
 async function parseScad(text) {
+  scadErrors.length = 0;
   setStatus("Loading SCAD engine...");
   const compiler = await getScadCompiler();
+  scadErrors.length = 0;
   setStatus("Compiling SCAD...");
-  const stlText = await compiler.renderToStl(text);
-  if (!stlText || !/solid\\b/i.test(stlText)) {
-    throw new Error("SCAD compile failed. Check the syntax.");
+  const cleaned = normalizeScadText(text);
+  let stlOutput;
+  try {
+    stlOutput = await compiler.renderToStl(cleaned);
+  } catch (error) {
+    const message =
+      getScadErrorMessage() || error?.message || "SCAD compile failed.";
+    throw new Error(message);
   }
-  return parseStlData(stlText);
+  if (stlOutput === null || stlOutput === undefined) {
+    const message = getScadErrorMessage() || "SCAD produced no output.";
+    throw new Error(message);
+  }
+  if (typeof stlOutput === "string" && !stlOutput.trim()) {
+    const message = getScadErrorMessage() || "SCAD produced empty output.";
+    throw new Error(message);
+  }
+
+  let data = stlOutput;
+  if (stlOutput instanceof Uint8Array) {
+    data = stlOutput.buffer;
+  }
+
+  try {
+    return parseStlData(data);
+  } catch (error) {
+    const message =
+      getScadErrorMessage() ||
+      error?.message ||
+      "SCAD output could not be parsed as STL.";
+    throw new Error(message);
+  }
 }
 
 function parseStlData(data) {

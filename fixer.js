@@ -8,6 +8,7 @@ const details = document.getElementById("fix-details");
 
 let scadCompilerPromise = null;
 let isRunning = false;
+const scadErrors = [];
 
 function setStatus(message, isError = false) {
   status.textContent = message;
@@ -16,6 +17,23 @@ function setStatus(message, isError = false) {
 
 function setDetails(message) {
   details.textContent = message;
+}
+
+function recordScadError(message) {
+  if (message === undefined || message === null) {
+    return;
+  }
+  scadErrors.push(String(message));
+}
+
+function getScadErrorMessage() {
+  if (!scadErrors.length) {
+    return null;
+  }
+  const normalized = scadErrors.map((line) => line.replace(/\s+/g, " ").trim());
+  const errorLine = [...normalized].reverse().find((line) => /error/i.test(line));
+  const warningLine = [...normalized].reverse().find((line) => /warning/i.test(line));
+  return errorLine || warningLine || null;
 }
 
 function detectFormat(text) {
@@ -52,6 +70,14 @@ function repairStlText(inputText) {
   return text;
 }
 
+function normalizeScadText(inputText) {
+  return inputText
+    .replace(/^\uFEFF/, "")
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u00A0/g, " ")
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+}
+
 function repairScadText(inputText) {
   const lines = inputText.replace(/\r\n?/g, "\n").split("\n");
   let changed = false;
@@ -77,18 +103,38 @@ async function getScadCompiler() {
   if (!scadCompilerPromise) {
     scadCompilerPromise = import(
       "https://unpkg.com/openscad-wasm-prebuilt@1.2.0/dist/openscad.js"
-    ).then((mod) => mod.createOpenSCAD());
+    ).then((mod) =>
+      mod.createOpenSCAD({
+        print: recordScadError,
+        printErr: recordScadError,
+      })
+    );
   }
   return scadCompilerPromise;
 }
 
 async function compileScad(text) {
+  scadErrors.length = 0;
   const compiler = await getScadCompiler();
-  const stlText = await compiler.renderToStl(text);
-  if (!stlText || !/solid\b/i.test(stlText)) {
-    throw new Error("SCAD compile failed.");
+  scadErrors.length = 0;
+  const cleaned = normalizeScadText(text);
+  let stlOutput;
+  try {
+    stlOutput = await compiler.renderToStl(cleaned);
+  } catch (error) {
+    const message =
+      getScadErrorMessage() || error?.message || "SCAD compile failed.";
+    throw new Error(message);
   }
-  return stlText;
+  if (stlOutput === null || stlOutput === undefined) {
+    const message = getScadErrorMessage() || "SCAD produced no output.";
+    throw new Error(message);
+  }
+  if (typeof stlOutput === "string" && !stlOutput.trim()) {
+    const message = getScadErrorMessage() || "SCAD produced empty output.";
+    throw new Error(message);
+  }
+  return stlOutput;
 }
 
 async function fixScad(text) {
@@ -98,13 +144,23 @@ async function fixScad(text) {
   } catch (error) {
     const result = repairScadText(text);
     if (!result.changed) {
-      return { fixed: text, changed: false, ok: false, error };
+      return {
+        fixed: text,
+        changed: false,
+        ok: false,
+        errorMessage: error?.message,
+      };
     }
     try {
       await compileScad(result.text);
       return { fixed: result.text, changed: true, ok: true };
     } catch (retryError) {
-      return { fixed: result.text, changed: true, ok: false, error: retryError };
+      return {
+        fixed: result.text,
+        changed: true,
+        ok: false,
+        errorMessage: retryError?.message,
+      };
     }
   }
 }
@@ -173,7 +229,9 @@ async function fixCode() {
       setStatus("Fixed SCAD and it now compiles.");
       return;
     }
-    setDetails("Auto-fix applied, but SCAD still fails to compile.");
+    setDetails(
+      result.errorMessage || "Auto-fix applied, but SCAD still fails to compile."
+    );
     setStatus("Fixer could not fully repair the SCAD.", true);
     return;
   }
