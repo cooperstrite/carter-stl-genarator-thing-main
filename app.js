@@ -1,11 +1,11 @@
-import * as THREE from "https://unpkg.com/three@0.158.0/build/three.module.js";
-import { OrbitControls } from "https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js";
-import { STLLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/STLLoader.js";
-import { STLExporter } from "https://unpkg.com/three@0.158.0/examples/jsm/exporters/STLExporter.js";
-import { OBJLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/OBJLoader.js";
-import { PLYLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/PLYLoader.js";
-import { GLTFLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js";
-import { ThreeMFLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/3MFLoader.js";
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
+import { STLExporter } from "three/addons/exporters/STLExporter.js";
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { PLYLoader } from "three/addons/loaders/PLYLoader.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { ThreeMFLoader } from "three/addons/loaders/3MFLoader.js";
 
 const fileInput = document.getElementById("file-input");
 const dropZone = document.getElementById("drop-zone");
@@ -398,6 +398,9 @@ async function parseScad(text) {
   const compiler = await getScadCompiler();
   setStatus("Compiling SCAD...");
   const stlText = await compiler.renderToStl(text);
+  if (!stlText || !/solid\\b/i.test(stlText)) {
+    throw new Error("SCAD compile failed. Check the syntax.");
+  }
   return parseStlData(stlText);
 }
 
