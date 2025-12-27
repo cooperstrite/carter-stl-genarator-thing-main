@@ -116,6 +116,12 @@ body::before {
   margin-bottom: 24px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .logo {
   font-size: 1.4rem;
   font-weight: 700;
@@ -282,6 +288,29 @@ select:focus {
   outline: none;
   border-color: var(--accent-2);
   box-shadow: 0 0 0 2px rgba(54, 201, 198, 0.2);
+}
+
+input[type="number"] {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 14px;
+  background: rgba(7, 10, 20, 0.7);
+  color: var(--text);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 2px rgba(54, 201, 198, 0.2);
+}
+
+.generator-actions {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
 }
 
 .toggles {

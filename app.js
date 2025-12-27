@@ -26,6 +26,8 @@ const repairMessage = document.getElementById("repair-message");
 const repairConfirm = document.getElementById("repair-confirm");
 const repairCancel = document.getElementById("repair-cancel");
 
+const GENERATED_CODE_KEY = "stlStudio.generatedCode";
+
 const scene = new THREE.Scene();
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -790,6 +792,13 @@ autoFit.addEventListener("change", () => {
 });
 
 window.addEventListener("resize", onResize);
+
+const generatedCode = localStorage.getItem(GENERATED_CODE_KEY);
+if (generatedCode) {
+  stlText.value = generatedCode;
+  localStorage.removeItem(GENERATED_CODE_KEY);
+  setStatus("Generated code loaded. Click View Model.");
+}
 
 onResize();
 frameCamera(modelGroup);
