@@ -150,6 +150,10 @@ body::before {
   align-items: start;
 }
 
+.workspace.single {
+  grid-template-columns: 1fr;
+}
+
 .panel {
   background: var(--panel);
   border-radius: var(--radius);
@@ -229,6 +233,46 @@ textarea {
 }
 
 textarea:focus {
+  outline: none;
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 2px rgba(54, 201, 198, 0.2);
+}
+
+textarea.output {
+  min-height: 180px;
+}
+
+.output-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fixer-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.select-wrap {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+select {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 14px;
+  background: rgba(7, 10, 20, 0.7);
+  color: var(--text);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+
+select:focus {
   outline: none;
   border-color: var(--accent-2);
   box-shadow: 0 0 0 2px rgba(54, 201, 198, 0.2);

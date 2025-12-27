@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>STL Studio | AI Fixer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="site">
+      <header class="site-header" data-animate style="--delay: 0s">
+        <div>
+          <div class="logo">STL Studio</div>
+          <div class="tagline">AI fixer for SCAD and STL (local, private)</div>
+        </div>
+        <a class="btn ghost" href="index.html">Back to Viewer</a>
+      </header>
+
+      <section class="hero" data-animate style="--delay: 0.1s">
+        <h1>Paste code, auto-fix common issues, and copy the repaired result.</h1>
+        <p>
+          This page uses local heuristics (no uploads). It can repair common
+          ASCII STL issues and SCAD syntax mistakes like assigning geometry to a
+          variable.
+        </p>
+      </section>
+
+      <section class="workspace single">
+        <div class="panel controls" data-animate style="--delay: 0.2s">
+          <div class="card">
+            <label for="fix-input">Paste your code</label>
+            <textarea
+              id="fix-input"
+              placeholder="Paste SCAD or ASCII STL here."
+            ></textarea>
+            <div class="fixer-actions">
+              <label class="select-wrap">
+                <span>Format</span>
+                <select id="fix-format">
+                  <option value="auto">Auto-detect</option>
+                  <option value="scad">SCAD</option>
+                  <option value="stl">STL (ASCII)</option>
+                </select>
+              </label>
+              <button class="btn primary" id="fix-button">Fix My Code</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <label for="fix-output">Fixed code</label>
+            <textarea
+              id="fix-output"
+              class="output"
+              readonly
+              placeholder="Fixed code will appear here."
+            ></textarea>
+            <div class="output-actions">
+              <button class="btn secondary" id="copy-fixed" disabled>
+                Copy Fixed Code
+              </button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="stats" id="fix-details">Waiting for input.</div>
+            <div class="status" id="fix-status">Ready.</div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="site-footer" data-animate style="--delay: 0.4s">
+        SCAD fixing loads a local OpenSCAD engine (about 11MB) on first use.
+      </footer>
+    </main>
+
+    <script type="module" src="fixer.js"></script>
+  </body>
+</html>
